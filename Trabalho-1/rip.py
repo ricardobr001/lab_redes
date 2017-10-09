@@ -103,7 +103,7 @@ class Processo:
         flag = False
 
         #Andando o vetor alcance do processo
-        for i in range(len(msg)):
+        for i in range(len(msg.alcance)):
 
             # Se o meu alcance atual for maior que o novo alcance recebido, atualizo meu alcance
             if self.alcance[i] > msg.alcance[i]:
