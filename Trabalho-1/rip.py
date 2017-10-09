@@ -83,6 +83,19 @@ class Processo:
         meu_socket.send(mensagem_codificada)
         meu_socket.close()
 
+    # Definição do método que envia a flag de atualização a seus processos adjacentes
+    def envia_flag(self, flag, id):
+
+        # Abrindo o socket
+        meu_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = ('localhost', 25000 + id)
+        meu_socket.connect(server_address)
+
+        # Enviando a mensagem e o ack para os outros processos
+        mensagem_codificada = pickle.dumps(flag)
+        meu_socket.send(mensagem_codificada)
+        meu_socket.close()
+
     # Definição do método que atualiza o vetor de alcance do processo
     def atualiza_alcance(self, msg):
 
@@ -110,11 +123,6 @@ class Mensagem:
     def __init__(self, alcance, id):
         self.alcance = alcance
         self.id = id
-
-# Definindo uma mensagem de atualização
-class Atualizado:
-    def __init__(self, atualizado):
-        self.atualizado = atualizado
 
 # Definindo um conteúdo
 class Conteudo:
@@ -147,14 +155,22 @@ def thread_recebe():
                     # Recebe os dados e os decodifica
                     data = connectionSocket.recv(1024)
                     decodificada = pickle.loads(data)
-                    processo.atualiza_alcance(decodificada)
+                    # processo.atualiza_alcance(decodificada)
 
+                    # Ou é uma mensagem com o vetor alcance
                     if isinstance(decodificada, (Mensagem)):
-                        ack = processo.recebe_msg(decodificada)
-                        processo.envia_ack(ack)
+                        flag = processo.atualiza_alcance(decodificada)
+                        processo.envia_flag(flag)
 
-                    elif isinstance(decodificada, (Ack)):
-                        processo.recebe_ack(decodificada)
+                        if flag:
+                            processo.atualizados = 0
+
+                    # Ou é uma mensagem com a flag de atualização
+                    else:
+                        if not decodificada:
+                            processo.atualizados += 1
+                        else:
+                            processo.atualizados = 0
 
                 except Exception as e:
                     print 'Erro ao receber:', e
@@ -169,39 +185,31 @@ def thread_recebe():
             time.sleep(5)
 
 # Definindo a thread que gera as mensagens
-def thread_gera():
+def thread_inicia():
     global processo
 
     while True:
-        time.sleep(10)
 
         try:
-            processo.envia_msg()
+            # Aguarda uma entrada do usuário para iniciar
+            raw_input()
+
+            processo.envia_alcance(processo.id)
         except Exception as e:
             print 'Erro ao enviar', e
             # exc_type, exc_obj, exc_tb = sys.exc_info()
             # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             # print(exc_type, fname, exc_tb.tb_lineno)
 
-# Definindo a thread do clock
-def thread_clock():
-    global processo
-
-    while True:
-        processo.incrementa_clock()
-
-        time.sleep(2)
-
-processo = Processo(int(sys.argv[2]))
+processo = Processo(int(sys.argv[1]))
 
 # Main
 def main():
     PORT = sys.argv[1]
     thread.start_new_thread(thread_recebe, ())
-    thread.start_new_thread(thread_gera, ())
-    thread.start_new_thread(thread_clock, ())
+    thread.start_new_thread(thread_inicia, ())
 
     signal.pause()
 
 if __name__ == "__main__":
-sys.exit(main())
+    sys.exit(main())
