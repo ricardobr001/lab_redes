@@ -15,13 +15,12 @@
 
 from random import *
 import socket
-import string
 import thread
 import pickle
 import sys
 import signal
 import time
-import os
+# import os
 
 # Definindo um processo
 class Processo:
@@ -83,31 +82,16 @@ class Processo:
         meu_socket.send(mensagem_codificada)
         meu_socket.close()
 
-    # Definição do método que envia a flag de atualização a seus processos adjacentes
-    def envia_flag(self, flag, id):
-
-        # Abrindo o socket
-        meu_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_address = ('localhost', 25000 + id)
-        meu_socket.connect(server_address)
-
-        # Enviando a mensagem e o ack para os outros processos
-        mensagem_codificada = pickle.dumps(flag)
-        meu_socket.send(mensagem_codificada)
-        meu_socket.close()
-
     # Definição do método que atualiza o vetor de alcance do processo
     def atualiza_alcance(self, msg):
 
+        # Flag que diz se houve uma atualização ou não no vetor alcance
         flag = False
 
-        # print 'Msg do ID:',msg.id
-
-        #Andando o vetor alcance do processo
+        # Andando o vetor alcance do processo
         for i in range(len(msg.alcance)):
-            # Se o meu alcance atual for maior que o novo alcance recebido através do vizinho, atualizo meu alcance
-            # print 'Nó:',i,'\tAtual:',self.alcance[i].valor,'\tMsg:',msg.alcance[i].valor
 
+            # Se o meu alcance atual for maior que o novo alcance recebido através do vizinho, atualizo meu alcance
             # Verificamos somente os nós adjacentes do vizinho, não verificamos a distancia do vizinho a ele mesmo
             if i != msg.id:
 
@@ -216,10 +200,10 @@ def thread_recebe():
                             processo.atualizados = 0
 
                 except Exception as e:
-                    # print 'Erro ao receber:', e
-                    exc_type, exc_obj, exc_tb = sys.exc_info()
-                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    print(exc_type, fname, exc_tb.tb_lineno)
+                    print 'Erro ao receber:', e
+                    # exc_type, exc_obj, exc_tb = sys.exc_info()
+                    # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    # print(exc_type, fname, exc_tb.tb_lineno)
 
 
 
