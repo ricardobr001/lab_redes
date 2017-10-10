@@ -36,7 +36,7 @@ class Processo:
     def rinit0(self):
 
         # Inicializa o vetor de alcance do processo
-        self.alcance.insert(len(self.alcance), Conteudo(0, 0)) 
+        self.alcance.insert(len(self.alcance), Conteudo(0, 0))
         self.alcance.insert(len(self.alcance), Conteudo(1, 0))
         self.alcance.insert(len(self.alcance), Conteudo(3, 0))
         self.alcance.insert(len(self.alcance), Conteudo(7, 0))
@@ -99,15 +99,38 @@ class Processo:
     # Definição do método que atualiza o vetor de alcance do processo
     def atualiza_alcance(self, msg):
 
+        flag = False
+
+        # print 'Msg do ID:',msg.id
+
         #Andando o vetor alcance do processo
         for i in range(len(msg.alcance)):
-
             # Se o meu alcance atual for maior que o novo alcance recebido através do vizinho, atualizo meu alcance
-            if self.alcance[i].valor > self.alcance[msg.id].valor + msg.alcance[i].valor:
-                flag = True
-                self.alcance[i] = msg.alcance[i]
-            elif self.alcance[i] == -1:
-                self.alcance[i] = msg.alcance[i]
+            # print 'Nó:',i,'\tAtual:',self.alcance[i].valor,'\tMsg:',msg.alcance[i].valor
+
+            # Verificamos somente os nós adjacentes do vizinho, não verificamos a distancia do vizinho a ele mesmo
+            if i != msg.id:
+
+                # Se o nó ainda não foi descoberto
+                if self.alcance[i].valor == -1:
+                    flag = True
+
+                    # O custo pro novo nó será a distância até meu vizinho mais a distância do vizinho até o novo nó
+                    self.alcance[i].valor = msg.alcance[i].valor + self.alcance[msg.id].valor
+                    self.alcance[i].id = msg.id     # Atualizamos seu novo antecessor
+
+                # Se ele já tiver sido descoberto
+                # Verificamos se o meu valor atual é maior que
+                # A soma do valor até o meu vizinho mais o valor da distância do meu vizinho
+                # Até o nó especifico
+                # Ex: distancia nó 3 -> 0 for maior que
+                # A distância do nó 3 -> 2 + dist do nó 2 -> 0
+                elif self.alcance[i].valor > self.alcance[msg.id].valor + msg.alcance[i].valor:
+                    flag = True
+                    self.alcance[i].valor = msg.alcance[i].valor + self.alcance[msg.id].valor
+                    self.alcance[i].id = msg.id     # Atualizamos seu novo antecessor
+
+        return flag
 
     # Definição do método que mostra o vetor alcance do processo
     def mostra_alcance(self):
@@ -180,6 +203,17 @@ def thread_recebe():
                         else:
                             processo.envia_alcance(0)
                             processo.envia_alcance(2)
+
+                        if processo.atualizados == 6:
+                            time.sleep(5000)
+
+                        # Se não houve atualização, marca no contador do processo
+                        if not flag:
+                            processo.atualizados += 1
+
+                        # Caso houver atualização, marca que, zera o contador
+                        else:
+                            processo.atualizados = 0
 
                 except Exception as e:
                     # print 'Erro ao receber:', e
