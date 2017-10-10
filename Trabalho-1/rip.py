@@ -1,9 +1,9 @@
 #coding: utf-8
 # python 2.7
-# Desenvolvido apenas para 3 processos, rodando nas portas 25000, 25001 e 25002
-# Com os IDs sendo 0, 1 e 2 respectivamente
+# Desenvolvido apenas para 4 processos, rodando nas portas 25000, 25001, 25002 e 25003
+# Com os IDs sendo 0, 1, 2 e 4 respectivamente
 # Executar o programa passando no argumento a porta e o seu ID
-# Ex: python Process.py 25000 1
+# Ex: python rip.py 25000 0
 # Ou iniciar o start.py (Necessário sistema linux)
 
 
@@ -21,7 +21,7 @@ import pickle
 import sys
 import signal
 import time
-# import os
+import os
 
 # Definindo um processo
 class Processo:
@@ -36,42 +36,42 @@ class Processo:
     def rinit0(self):
 
         # Inicializa o vetor de alcance do processo
-        self.alcance[0] = Conteudo(0, 0)
-        self.alcance[1] = Conteudo(1, 0)
-        self.alcance[2] = Conteudo(3, 0)
-        self.alcance[3] = Conteudo(7, 0)
+        self.alcance.insert(len(self.alcance), Conteudo(0, 0)) 
+        self.alcance.insert(len(self.alcance), Conteudo(1, 0))
+        self.alcance.insert(len(self.alcance), Conteudo(3, 0))
+        self.alcance.insert(len(self.alcance), Conteudo(7, 0))
 
     # Definição do método que inicia o nó 1
     def rinit1(self):
 
         # Inicializa o vetor de alcance do processo
-        self.alcance[0] = Conteudo(1, 1)
-        self.alcance[1] = Conteudo(0, 1)
-        self.alcance[2] = Conteudo(1, 1)
-        self.alcance[3] = Conteudo(-1, 1)
+        self.alcance.insert(len(self.alcance), Conteudo(1, 1))
+        self.alcance.insert(len(self.alcance), Conteudo(0, 1))
+        self.alcance.insert(len(self.alcance), Conteudo(1, 1))
+        self.alcance.insert(len(self.alcance), Conteudo(-1, 1))
 
     # Definição do método que inicia o nó 2
     def rinit2(self):
 
         # Inicializa o vetor de alcance do processo
-        self.alcance[0] = Conteudo(3, 2)
-        self.alcance[1] = Conteudo(1, 2)
-        self.alcance[2] = Conteudo(0, 2)
-        self.alcance[3] = Conteudo(2, 2)
+        self.alcance.insert(len(self.alcance), Conteudo(3, 2))
+        self.alcance.insert(len(self.alcance), Conteudo(1, 2))
+        self.alcance.insert(len(self.alcance), Conteudo(0, 2))
+        self.alcance.insert(len(self.alcance), Conteudo(2, 2))
 
     # Definição do método que inicia o nó 3
     def rinit3(self):
 
         # Inicializa o vetor de alcance do processo
-        self.alcance[0] = Conteudo(7, 3)
-        self.alcance[1] = Conteudo(-1, 3)
-        self.alcance[2] = Conteudo(2, 3)
-        self.alcance[3] = Conteudo(0, 3)
+        self.alcance.insert(len(self.alcance), Conteudo(7, 3))
+        self.alcance.insert(len(self.alcance), Conteudo(-1, 3))
+        self.alcance.insert(len(self.alcance), Conteudo(2, 3))
+        self.alcance.insert(len(self.alcance), Conteudo(0, 3))
 
     # Definição do método que envia o vetor alcance para outro processo
     def envia_alcance(self, id):
 
-        mensagem = Mensagem(self.alcance, id)
+        mensagem = Mensagem(self.alcance, self.id)
 
         # Abrindo o socket
         meu_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -99,23 +99,23 @@ class Processo:
     # Definição do método que atualiza o vetor de alcance do processo
     def atualiza_alcance(self, msg):
 
-        # Flag que ira marcar caso haja uma atualização
-        flag = False
-
         #Andando o vetor alcance do processo
         for i in range(len(msg.alcance)):
 
-            # Se o meu alcance atual for maior que o novo alcance recebido, atualizo meu alcance
-            if self.alcance[i] > msg.alcance[i]:
+            # Se o meu alcance atual for maior que o novo alcance recebido através do vizinho, atualizo meu alcance
+            if self.alcance[i].valor > self.alcance[msg.id].valor + msg.alcance[i].valor:
                 flag = True
                 self.alcance[i] = msg.alcance[i]
+            elif self.alcance[i] == -1:
+                self.alcance[i] = msg.alcance[i]
 
-        # Se houve uma atualização, retorna verdadeiro
-        if flag:
-            return flag
+    # Definição do método que mostra o vetor alcance do processo
+    def mostra_alcance(self):
 
-        # Caso contrário, retorna falso
-        return flag
+        print 'Nós:\t\t',0,'\t',1,'\t',2,'\t',3
+        print 'Peso:\t\t',self.alcance[0].valor,'\t',self.alcance[1].valor,'\t',self.alcance[2].valor,'\t',self.alcance[3].valor
+        print 'Antecessor:\t',self.alcance[0].id,'\t',self.alcance[1].id,'\t',self.alcance[2].id,'\t',self.alcance[3].id
+        print '\n\n'
 
 
 # Definindo uma mensagem
@@ -159,24 +159,33 @@ def thread_recebe():
 
                     # Ou é uma mensagem com o vetor alcance
                     if isinstance(decodificada, (Mensagem)):
+                        processo.mostra_alcance()
                         flag = processo.atualiza_alcance(decodificada)
-                        processo.envia_flag(flag)
 
-                        if flag:
-                            processo.atualizados = 0
+                        # Enviando mensagens e flags para os nós conectados
+                        if processo.id == 0:
+                            processo.envia_alcance(1)
+                            processo.envia_alcance(2)
+                            processo.envia_alcance(3)
 
-                    # Ou é uma mensagem com a flag de atualização
-                    else:
-                        if not decodificada:
-                            processo.atualizados += 1
+                        elif processo.id == 1:
+                            processo.envia_alcance(0)
+                            processo.envia_alcance(2)
+
+                        elif processo.id == 2:
+                            processo.envia_alcance(0)
+                            processo.envia_alcance(1)
+                            processo.envia_alcance(3)
+
                         else:
-                            processo.atualizados = 0
+                            processo.envia_alcance(0)
+                            processo.envia_alcance(2)
 
                 except Exception as e:
-                    print 'Erro ao receber:', e
-                    # exc_type, exc_obj, exc_tb = sys.exc_info()
-                    # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    # print(exc_type, fname, exc_tb.tb_lineno)
+                    # print 'Erro ao receber:', e
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    print(exc_type, fname, exc_tb.tb_lineno)
 
 
 
@@ -194,7 +203,25 @@ def thread_inicia():
             # Aguarda uma entrada do usuário para iniciar
             raw_input()
 
-            processo.envia_alcance(processo.id)
+            # Enviando mensagens para os nós conectados
+            if processo.id == 0:
+                processo.envia_alcance(1)
+                processo.envia_alcance(2)
+                processo.envia_alcance(3)
+
+            elif processo.id == 1:
+                processo.envia_alcance(0)
+                processo.envia_alcance(2)
+
+            elif processo.id == 2:
+                processo.envia_alcance(0)
+                processo.envia_alcance(1)
+                processo.envia_alcance(3)
+
+            else:
+                processo.envia_alcance(0)
+                processo.envia_alcance(2)
+
         except Exception as e:
             print 'Erro ao enviar', e
             # exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -202,6 +229,19 @@ def thread_inicia():
             # print(exc_type, fname, exc_tb.tb_lineno)
 
 processo = Processo(int(sys.argv[2]))
+print 'Processo:',processo.id
+
+if processo.id == 0:
+    processo.rinit0()
+
+elif processo.id == 1:
+    processo.rinit1()
+
+elif processo.id == 2:
+    processo.rinit2()
+
+else:
+    processo.rinit3()
 
 # Main
 def main():
